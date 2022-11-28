@@ -73,6 +73,7 @@ const buttons =
     add_lines: add_lines,
     export_boxes: export_boxes,
     export_lines: export_lines,
+    boxes_finer: boxes_finer,
     delete_last_box: delete_last_box,
     delete_last_line: delete_last_line,
     delete_all_boxes: delete_all_boxes,
@@ -125,7 +126,7 @@ function initialization( )
     const gui_rotate = gui.addFolder( 'Auto rotation' );
     gui_rotate.add( params, 'auto_rotate' ).name( 'Active' );
     gui_rotate.add( buttons, 'change_rotate_direction' ).name( 'Change direction' );
-    gui_rotate.add( params, 'rotate_radius', 0.5, 10 ).name( 'Radius' ).listen().onChange(
+    gui_rotate.add( params, 'rotate_radius', 1, 3 ).name( 'Radius' ).listen().onChange(
         function( value )
         {
             var distance = get_distance_to_axisY();
@@ -135,6 +136,7 @@ function initialization( )
     );
     gui_rotate.add( params, 'rotate_speed', 0.001, 0.01 ).name( 'Speed' );
     const gui_modify = gui.addFolder( 'Modification' );
+    gui_modify.add( buttons, 'boxes_finer' ).name( 'Make boxes finer' );
     const gui_IO = gui_modify.addFolder( 'IO' );
     gui_IO.add( buttons, 'add_boxes' ).name( 'Add boxes' );
     gui_IO.add( buttons, 'add_lines' ).name( 'Add lines' );
@@ -247,6 +249,57 @@ function delete_all_boxes( )
         boxes_profile.pop();
         scene.remove( last_box );
     }
+}
+
+function boxes_finer( )
+{
+    const new_boxes_profile = [];
+    let width, height, depth, x, y, z, nx, ny, nz;
+    for ( const each_profile of boxes_profile )
+    {
+        const content_list = each_profile.split( '|' );
+        const whd = content_list[ 0 ].split( ',' );
+        const position = content_list[ 1 ].split( ',' );
+        let profile_head, profile_tail;
+        if ( whd.length == 1 )
+        {
+            width  = Math.abs( Number( whd[ 0 ] ) ) / 2;
+            height = width;
+            depth  = width;
+            profile_head = width.toString() + '|';
+        }
+        else if ( whd.length == 3 )
+        {
+            width  = Math.abs( Number( whd[ 0 ] ) ) / 2;
+            height = Math.abs( Number( whd[ 1 ] ) ) / 2;
+            depth  = Math.abs( Number( whd[ 2 ] ) ) / 2;
+            profile_head = width.toString() + ',' + height.toString() + ',' + depth.toString() + '|';
+        }
+        else
+        {
+            throw 'Wrong input for size of the box!';
+        }
+        x = Number( position[ 0 ] );
+        y = Number( position[ 1 ] );
+        z = Number( position[ 2 ] );
+        for ( let i = 0; i < 2; i++ )
+        {
+            nx = x + width * i;
+            for ( let j = 0; j < 2; j++ )
+            {
+                ny = y + height * j;
+                for ( let k = 0; k < 2; k++ )
+                {
+                    nz = z + depth * k;
+                    profile_tail = nx.toString() + ',' + ny.toString() + ',' + nz.toString();
+                    if ( ( i + j + k ) % 2 == 0 ) profile_tail += '|gray';
+                    new_boxes_profile.push( profile_head + profile_tail );
+                }
+            }
+        }
+    }
+    delete_all_boxes();
+    string_to_boxes( new_boxes_profile.join( ';' ) );
 }
 
 function string_to_one_line( s )
